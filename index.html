@@ -728,15 +728,14 @@ async function loadNews() {
         ticker.innerHTML = content + content;
 
         requestAnimationFrame(() => requestAnimationFrame(() => {
-            const vw      = viewport.offsetWidth;
             const singleW = ticker.scrollWidth / 2;
             if (singleW <= 10) return;
 
-            // start just off the right edge; at end, copy2's first item is at vw → seamless loop
+            // 0 → -singleW: at reset copy2's item1 is at 0 (same as copy1 at start) → seamless
             tickerAnim = ticker.animate(
                 [
-                    { transform: `translateX(${vw}px)` },
-                    { transform: `translateX(${vw - singleW}px)` }
+                    { transform: `translateX(0)` },
+                    { transform: `translateX(-${singleW}px)` }
                 ],
                 { duration: (singleW / 90) * 1000, iterations: Infinity, easing: "linear" }
             );
