@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>בניין יפה נוף 25</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --header-h:  90px;
+    --weather-h: 70px;
+    --ticker-h:  88px;
+    --gap:       14px;
+    --pad:       14px;
+}
+
+body {
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(30,64,175,0.25) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(91,33,182,0.2)  0%, transparent 55%),
+        radial-gradient(ellipse at 60% 80%, rgba(6,95,70,0.15)   0%, transparent 50%),
+        #060d1a;
+    color: #f1f5f9;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display: grid;
+    grid-template-rows: var(--header-h) var(--weather-h) auto 1fr;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+.glass {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+}
+
+/* ── Header ── */
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 36px;
+    background: rgba(6,13,26,0.8);
+    backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.header-logo       { font-size: 32px; font-weight: 600; flex-shrink: 0; }
+.header-dates      { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+#date              { font-size: 22px; color: #cbd5e1; }
+#hebrew-date       { font-size: 19px; color: #64748b; }
+#clock {
+    font-size: 62px; font-weight: 200;
+    font-variant-numeric: tabular-nums; letter-spacing: -2px; line-height: 1;
+    flex-shrink: 0;
+}
+
+/* ── Birthday banner ── */
+#bday-banner {
+    display: none; align-items: center; gap: 16px;
+    padding: 10px 36px;
+    background: linear-gradient(90deg, rgba(251,191,36,0.18), rgba(251,191,36,0.05));
+    border-bottom: 1px solid rgba(251,191,36,0.25);
+}
+#bday-banner.visible { display: flex; }
+.bday-icon  { font-size: 32px; flex-shrink: 0; }
+.bday-label { font-size: 25px; font-weight: 700; color: #fbbf24; flex-shrink: 0; }
+.bday-names { font-size: 24px; color: #fde68a; }
+
+/* ── Weather strip ── */
+#weather-strip {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 20px;
+    background: rgba(6,13,26,0.65);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    height: 72px;
+    flex-shrink: 0;
+}
+.ws-current {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-left: 28px;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    flex-shrink: 0;
+}
+#weather-icon { font-size: 38px; line-height: 1; }
+#weather-temp { font-size: 46px; font-weight: 200; line-height: 1; }
+#weather-desc { font-size: 17px; color: #94a3b8; }
+
+.forecast-strip {
+    display: flex;
+    flex: 1;
+    padding: 0 10px;
+}
+.fc-day {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 16px;
+    border-left: 1px solid rgba(255,255,255,0.05);
+}
+.fc-day:last-child { border-left: none; }
+.fc-name { color: #94a3b8; font-size: 15px; font-weight: 600; }
+.fc-ico  { font-size: 26px; }
+.fc-hi   { color: #fbbf24; font-size: 18px; font-weight: 600; }
+.fc-lo   { color: #60a5fa; font-size: 15px; }
+
+/* ── Main 2-column grid ── */
+main {
+    display: grid;
+    grid-template-columns: 1.5fr 2fr;
+    gap: 14px;
+    padding: 14px;
+    padding-bottom: calc(var(--ticker-h) + 10px);
+    overflow: hidden;
+    min-height: 0;
+}
+
+.left-col {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 14px;
+    min-height: 0;
+}
+
+/* calendar fills full height */
+.cal-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.card-inner {
+    padding: 18px 22px;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Section labels ── */
+.section-label {
+    font-size: 16px; font-weight: 700;
+    letter-spacing: 2.5px; text-transform: uppercase;
+    color: #5b8db8; margin-bottom: 12px; flex-shrink: 0;
+}
+
+/* ── Message/event items ── */
+.item {
+    display: flex; align-items: flex-start;
+    gap: 12px; padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.item:last-child { border-bottom: none; }
+.item-dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 9px; flex-shrink: 0; }
+.dot-blue   { background: #3b82f6; box-shadow: 0 0 7px rgba(59,130,246,0.7); }
+.dot-purple { background: #a78bfa; box-shadow: 0 0 7px rgba(167,139,250,0.7); }
+.item-body  { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.item-text  { font-size: 26px; line-height: 1.4; color: #e2e8f0; }
+.item-meta  { font-size: 16px; color: #475569; }
+
+/* ── Calendar ── */
+.cal-month-header {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 10px; flex-shrink: 0;
+}
+.cal-month-name    { font-size: 24px; font-weight: 600; color: #e2e8f0; }
+.cal-month-hebrew  { font-size: 17px; color: #64748b; }
+
+.cal-dow-row {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 3px; margin-bottom: 4px; flex-shrink: 0;
+}
+.cal-dow-row > div {
+    text-align: center; font-size: 16px;
+    color: #475569; font-weight: 700; padding: 3px 0;
+}
+.cal-dow-row > div.shabbat-col { color: #60a5fa; }
+.cal-dow-row > div.friday-col  { color: #fb923c; }
+
+.cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    flex: 1;
+    min-height: 0;
+}
+
+/* equal rows via auto-rows — will be overridden by JS after render */
+.cal-cell {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 5px 6px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 0;
+}
+.cal-cell.today {
+    background: rgba(59,130,246,0.13);
+    border-color: rgba(59,130,246,0.45);
+}
+.cal-cell.shabbat  { border-color: rgba(96,165,250,0.2); }
+.cal-cell.empty    { background: transparent; border-color: transparent; }
+
+.cal-day-num {
+    font-size: 20px; font-weight: 600; line-height: 1;
+    color: #94a3b8; flex-shrink: 0;
+}
+.cal-day-num.today-num { color: #60a5fa; }
+.cal-day-num.shabbat-num { color: #60a5fa; opacity: 0.7; }
+
+/* event chips */
+.ev {
+    font-size: 13px; padding: 1px 5px; border-radius: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1.5; flex-shrink: 0;
+}
+.ev.holiday { background: rgba(251,191,36,0.18); color: #fde68a; }
+.ev.modern  { background: rgba(45,212,180,0.15);  color: #5eead4; }
+.ev.candles { background: rgba(251,146,60,0.18);  color: #fdba74; }
+.ev.havdalah{ background: rgba(129,140,248,0.18); color: #a5b4fc; }
+.ev.rosh    { background: rgba(52,211,153,0.15);  color: #6ee7b7; }
+.ev.sheet-ev{ background: rgba(167,139,250,0.18); color: #c4b5fd; }
+
+/* ── Ticker ── */
+footer {
+    position: fixed;
+    bottom: 8px; left: 10px; right: 10px;
+    height: var(--ticker-h);
+    z-index: 100;
+    display: flex; align-items: center;
+    background: rgba(4,10,22,0.95);
+    backdrop-filter: blur(24px);
+    border-top: 2px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    overflow: hidden;
+}
+.ticker-badge {
+    flex-shrink: 0; padding: 0 26px; height: 100%;
+    display: flex; align-items: center;
+    font-size: 18px; font-weight: 700; letter-spacing: 2px;
+    color: #fbbf24;
+    background: rgba(251,191,36,0.12);
+    border-left: 1px solid rgba(251,191,36,0.3);
+}
+.ticker-viewport { flex:1; overflow:hidden; height:100%; display:flex; align-items:center; }
+.ticker-inner {
+    display: inline-flex; align-items: center;
+    white-space: nowrap; font-size: 30px; color: #94a3b8;
+    will-change: transform;
+    direction: ltr;
+}
+.ticker-sep  { color: #fbbf24; margin: 0 28px; font-size: 12px; }
+.ticker-meta { color: #fbbf24; font-size: 22px; opacity: 0.85; margin-left: 10px; }
+
+/* ── Responsive: portrait (vertical TV) ── */
+@media (orientation: portrait) {
+    :root {
+        --header-h:  72px;
+        --weather-h: 64px;
+        --ticker-h:  64px;
+        --gap:       10px;
+        --pad:       10px;
+    }
+
+    /* ── Header: single row — clock | dates | logo ── */
+    header {
+        padding: 0 20px;
+    }
+    #clock           { font-size: 42px; }
+    .header-logo     { font-size: 20px; }
+    .header-dates    { flex-direction: row; gap: 8px; align-items: baseline; }
+    #date            { font-size: 16px; }
+    #hebrew-date     { font-size: 14px; color: #94a3b8; }
+
+    /* ── Weather strip stays full-width (no change needed) ── */
+
+    /* ── Main: single column
+         row 1 → messages | events  (fixed height)
+         row 2 → calendar           (fills remaining space)       ── */
+    main {
+        grid-template-columns: 1fr;
+        grid-template-rows: 220px 1fr;
+        gap: var(--gap);
+        padding: var(--pad);
+        padding-bottom: calc(var(--ticker-h) + 18px);
+    }
+
+    /* messages | events side by side */
+    .left-col {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr;
+        gap: var(--gap);
+    }
+
+    /* calendar fills full remaining row */
+    .cal-col { min-height: 0; }
+
+    /* Slightly smaller text so more items fit */
+    .item-text  { font-size: 20px; }
+    .item-meta  { font-size: 14px; }
+    .section-label { font-size: 14px; margin-bottom: 8px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+    <div class="header-logo">🏢 בניין יפה נוף 25</div>
+    <div class="header-dates">
+        <div id="date"></div>
+        <div id="hebrew-date"></div>
+    </div>
+    <div id="clock"></div>
+</header>
+
+<div id="weather-strip">
+    <div class="ws-current">
+        <span id="weather-icon">–</span>
+        <span id="weather-temp">–°</span>
+        <span id="weather-desc"></span>
+    </div>
+    <div class="forecast-strip" id="forecast-strip"></div>
+</div>
+
+<div id="bday-banner">
+    <span class="bday-icon">🎂</span>
+    <span class="bday-label">יום הולדת שמח!</span>
+    <span class="bday-names" id="bday-names"></span>
+</div>
+
+<main>
+
+    <!-- Left: messages + events -->
+    <div class="left-col">
+        <div class="glass">
+            <div class="card-inner">
+                <div class="section-label">הודעות</div>
+                <div id="msgList"><div class="item" style="color:#475569">טוען...</div></div>
+            </div>
+        </div>
+        <div class="glass">
+            <div class="card-inner">
+                <div class="section-label">אירועים</div>
+                <div id="eventList"><div class="item" style="color:#475569">טוען...</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Center: calendar -->
+    <div class="cal-col glass">
+        <div class="card-inner">
+            <div class="cal-month-header">
+                <span class="cal-month-name" id="cal-month-name"></span>
+                <span class="cal-month-hebrew" id="cal-month-hebrew"></span>
+            </div>
+            <div class="cal-dow-row">
+                <div>א׳</div><div>ב׳</div><div>ג׳</div><div>ד׳</div>
+                <div>ה׳</div><div class="friday-col">ו׳</div><div class="shabbat-col">ש׳</div>
+            </div>
+            <div class="cal-grid" id="cal-grid"></div>
+        </div>
+    </div>
+
+
+</main>
+
+<footer>
+    <div class="ticker-badge">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/f/f4/Ynet_website_logo.svg"
+             alt="ynet" style="height:36px;width:auto;vertical-align:middle;">
+    </div>
+    <div class="ticker-viewport">
+        <div class="ticker-inner" id="ticker"></div>
+    </div>
+</footer>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+const SHEET_ID         = "1wBrfbGsQGP-CTnb-OcNKdwyuRgnAxVLCwPtM6H_5DiQ";
+const LATITUDE         = 32.432033;
+const LONGITUDE        = 34.946715;
+const RSS_URL          = "https://www.ynet.co.il/Integration/StoryRss1854.xml";
+const NEWS_INTERVAL_MS = 9000;
+const REFRESH_MS       = 15 * 60 * 1000;
+// ───────────────────────────────────────────────────────────────────────────
+
+const sheetUrl = tab =>
+    `https://opensheet.elk.sh/${SHEET_ID}/${encodeURIComponent(tab)}`;
+
+const WMO_HE = {
+    0:"שמיים בהירים",1:"בהיר בעיקר",2:"מעונן חלקית",3:"מעונן",
+    45:"ערפל",48:"ערפל קפוא",51:"טפטוף קל",53:"טפטוף",55:"טפטוף כבד",
+    61:"גשם קל",63:"גשם",65:"גשם כבד",71:"שלג קל",73:"שלג",75:"שלג כבד",
+    80:"מקלחות גשם",81:"מקלחות",82:"מקלחות כבדות",
+    95:"סופת רעמים",96:"סופת ברד",99:"סופת רעמים חזקה"
+};
+const WMO_ICO = {
+    0:"☀️",1:"🌤️",2:"⛅",3:"☁️",45:"🌫️",48:"🌫️",
+    51:"🌦️",53:"🌦️",55:"🌧️",61:"🌧️",63:"🌧️",65:"🌧️",
+    71:"🌨️",73:"❄️",75:"❄️",80:"🌦️",81:"🌧️",82:"⛈️",
+    95:"⛈️",96:"⛈️",99:"⛈️"
+};
+const DAYS_HE   = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+const MONTHS_HE = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני",
+                   "יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+const HEBREW_MONTHS = {
+    "Nisan":"ניסן","Iyyar":"אייר","Sivan":"סיוון","Tamuz":"תמוז",
+    "Av":"אב","Elul":"אלול","Tishrei":"תשרי","Cheshvan":"חשוון",
+    "Kislev":"כסלו","Tevet":"טבת","Shvat":"שבט","Adar":"אדר",
+    "Adar I":"אדר א׳","Adar II":"אדר ב׳"
+};
+
+function todayMidnight() {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function parseDMY(str) {
+    if (!str?.trim()) return null;
+    const p = str.trim().split("/");
+    if (p.length === 2) { const n=new Date(); return new Date(n.getFullYear(),+p[1]-1,+p[0]); }
+    if (p.length === 3) return new Date(+p[2],+p[1]-1,+p[0]);
+    return null;
+}
+function fmtDate(str) {
+    const d = parseDMY(str); if (!d) return "";
+    return `${d.getDate()} ב${MONTHS_HE[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ── Clock + Gregorian date ────────────────────────────────────────────────────
+setInterval(() => {
+    const now = new Date();
+    document.getElementById("clock").innerText =
+        now.toLocaleTimeString("he-IL", {hour:"2-digit", minute:"2-digit"});
+    document.getElementById("date").innerText =
+        now.toLocaleDateString("he-IL", {weekday:"long", day:"numeric", month:"long", year:"numeric"});
+}, 1000);
+
+// ── Hebrew date (header) ──────────────────────────────────────────────────────
+async function loadHebrewDate() {
+    try {
+        const t = new Date();
+        const d = await fetch(
+            `https://www.hebcal.com/converter?cfg=json&gy=${t.getFullYear()}&gm=${t.getMonth()+1}&gd=${t.getDate()}&g2h=1`
+        ).then(r => r.json());
+        document.getElementById("hebrew-date").innerText = d.hebrew ?? "";
+        return d;
+    } catch(e) { return null; }
+}
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+async function loadCalendar(hebrewDateInfo, sheetEventRows) {
+    const grid = document.getElementById("cal-grid");
+    const today = new Date();
+    const year  = today.getFullYear();
+    const month = today.getMonth();
+
+    // Month title
+    document.getElementById("cal-month-name").innerText =
+        `${MONTHS_HE[month]} ${year}`;
+
+    // Fetch Hebcal events for this month + next (to cover the full display window)
+    const fetchMonth = (y, m) => fetch(
+        `https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=on&mod=on&nx=on&ss=on&mf=off&c=on&s=off`
+        + `&geo=pos&latitude=${LATITUDE}&longitude=${LONGITUDE}&tzid=Asia%2FJerusalem`
+        + `&M=on&lg=he&year=${y}&month=${m}`
+    ).then(r => r.json()).catch(() => ({items:[]}));
+
+    const nextMonth = month === 11 ? 1 : month + 2;
+    const nextYear  = month === 11 ? year + 1 : year;
+
+    const [cur, nxt] = await Promise.all([
+        fetchMonth(year, month + 1),
+        fetchMonth(nextYear, nextMonth)
+    ]);
+
+    const hebItems = [...(cur.items ?? []), ...(nxt.items ?? [])];
+
+    // Hebrew month range for header
+    if (hebrewDateInfo) {
+        const hm = HEBREW_MONTHS[hebrewDateInfo.hm] ?? hebrewDateInfo.hm ?? "";
+        document.getElementById("cal-month-hebrew").innerText = hm ? `| ${hm}` : "";
+    }
+
+    // Map Hebcal events by Gregorian day-of-month
+    const byDay = {};
+    hebItems.forEach(it => {
+        const d = new Date(it.date);
+        if (d.getFullYear() !== year || d.getMonth() !== month) return;
+        const key = d.getDate();
+        if (!byDay[key]) byDay[key] = [];
+        byDay[key].push(it);
+    });
+
+    // Map sheet events by day
+    if (sheetEventRows) {
+        sheetEventRows.forEach(r => {
+            const vals = Object.values(r);
+            const evDate = parseDMY(vals[1]?.trim());
+            const active = vals[2]?.trim();
+            const content= vals[3]?.trim();
+            const loc    = vals[4]?.trim();
+            if (!evDate || active !== "TRUE") return;
+            if (evDate.getFullYear() !== year || evDate.getMonth() !== month) return;
+            const key = evDate.getDate();
+            if (!byDay[key]) byDay[key] = [];
+            byDay[key].push({ category: "sheet-ev", title: content + (loc ? ` · ${loc}` : "") });
+        });
+    }
+
+    // Render grid
+    grid.innerHTML = "";
+    const firstDow  = new Date(year, month, 1).getDay();   // 0=Sun
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const totalCells  = Math.ceil((firstDow + daysInMonth) / 7) * 7;
+    const todayNum    = today.getDate();
+
+    for (let i = 0; i < totalCells; i++) {
+        const dayNum = i - firstDow + 1;
+        const cell   = document.createElement("div");
+
+        if (dayNum < 1 || dayNum > daysInMonth) {
+            cell.className = "cal-cell empty";
+            grid.appendChild(cell);
+            continue;
+        }
+
+        const dow      = (firstDow + dayNum - 1) % 7;  // 0=Sun … 6=Sat
+        const isToday  = dayNum === todayNum;
+        const isSabbath= dow === 6;
+        const isFriday = dow === 5;
+
+        cell.className = "cal-cell" +
+            (isToday   ? " today"   : "") +
+            (isSabbath ? " shabbat" : "");
+
+        let numClass = "cal-day-num";
+        if (isToday)   numClass += " today-num";
+        else if (isSabbath) numClass += " shabbat-num";
+
+        let html = `<div class="${numClass}">${dayNum}</div>`;
+
+        const events = byDay[dayNum] ?? [];
+        let shown = 0;
+        events.forEach(ev => {
+            if (shown >= 3) return;
+            const cat = ev.category;
+            const sub = ev.subcat ?? "";
+            if (cat === "parashat") return;
+
+            let cls   = "ev";
+            let label = ev.title ?? "";
+
+            if (cat === "candles") {
+                const t = new Date(ev.date).toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"});
+                label = `🕯 ${t}`;
+                cls  += " candles";
+            } else if (cat === "havdalah") {
+                const t = new Date(ev.date).toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"});
+                label = `✨ ${t}`;
+                cls  += " havdalah";
+            } else if (cat === "roshchodesh") {
+                cls  += " rosh";
+            } else if (cat === "holiday") {
+                cls  += sub === "modern" ? " modern" : " holiday";
+            } else if (cat === "sheet-ev") {
+                cls  += " sheet-ev";
+            } else {
+                return;
+            }
+
+            html += `<div class="${cls}" title="${label}">${label}</div>`;
+            shown++;
+        });
+
+        cell.innerHTML = html;
+        grid.appendChild(cell);
+    }
+
+    // Set equal row heights via grid-auto-rows
+    const rows = Math.ceil((firstDow + daysInMonth) / 7);
+    grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+}
+
+// ── Messages ─────────────────────────────────────────────────────────────────
+// Columns: date_added | last_date_show | active | content
+async function loadMessages() {
+    const el = document.getElementById("msgList");
+    try {
+        const rows  = await fetch(sheetUrl("messages")).then(r => r.json());
+        const today = todayMidnight();
+        el.innerHTML = "";
+        rows.forEach(r => {
+            const v = Object.values(r);
+            const active = v[2]?.trim(), content = v[3]?.trim();
+            if (active !== "TRUE") return;
+            if (v[1]?.trim()) { const l=parseDMY(v[1]); if(l && today > l) return; }
+            const div = document.createElement("div");
+            div.className = "item";
+            div.innerHTML = `
+                <div class="item-dot dot-blue"></div>
+                <div class="item-body">
+                    <span class="item-text">${content}</span>
+                    ${v[0]?.trim() ? `<span class="item-meta">נוסף: ${fmtDate(v[0])}</span>` : ""}
+                </div>`;
+            el.appendChild(div);
+        });
+        if (!el.children.length)
+            el.innerHTML = '<div class="item" style="color:#475569">אין הודעות</div>';
+    } catch(e) { console.warn("Messages:", e); }
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
+// Columns: date_added | event_date | active | content | location
+// Returns rows for calendar cross-use
+async function loadEvents() {
+    const el = document.getElementById("eventList");
+    try {
+        const rows = await fetch(sheetUrl("events")).then(r => r.json());
+        el.innerHTML = "";
+        rows.forEach(r => {
+            const v = Object.values(r);
+            const active=v[2]?.trim(), content=v[3]?.trim(), loc=v[4]?.trim();
+            if (active !== "TRUE") return;
+            const meta = [v[1]?.trim() ? fmtDate(v[1]) : "", loc].filter(Boolean).join(" · ");
+            const div = document.createElement("div");
+            div.className = "item";
+            div.innerHTML = `
+                <div class="item-dot dot-purple"></div>
+                <div class="item-body">
+                    <span class="item-text">${content}</span>
+                    ${meta ? `<span class="item-meta">${meta}</span>` : ""}
+                </div>`;
+            el.appendChild(div);
+        });
+        if (!el.children.length)
+            el.innerHTML = '<div class="item" style="color:#475569">אין אירועים</div>';
+        return rows;
+    } catch(e) { console.warn("Events:", e); return []; }
+}
+
+// ── Birthdays ─────────────────────────────────────────────────────────────────
+// Columns: name | apt | birthday (DD/MM)
+async function loadBirthdays() {
+    try {
+        const rows = await fetch(sheetUrl("birthdays")).then(r => r.json());
+        const t    = new Date();
+        const ddmm = `${String(t.getDate()).padStart(2,"0")}/${String(t.getMonth()+1).padStart(2,"0")}`;
+        const today = rows.filter(r => Object.values(r)[2]?.trim().startsWith(ddmm));
+        if (!today.length) return;
+        document.getElementById("bday-names").innerText = today.map(r => {
+            const v = Object.values(r);
+            return v[1]?.trim() ? `${v[0]?.trim()} (דירה ${v[1].trim()})` : v[0]?.trim();
+        }).join("  •  ");
+        document.getElementById("bday-banner").classList.add("visible");
+    } catch(e) { console.warn("Birthdays:", e); }
+}
+
+// ── Weather ───────────────────────────────────────────────────────────────────
+async function loadWeather() {
+    try {
+        const d = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${LATITUDE}&longitude=${LONGITUDE}`
+            + `&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Asia%2FJerusalem`
+        ).then(r => r.json());
+        const w = d.current_weather;
+        document.getElementById("weather-icon").innerText = WMO_ICO[w.weathercode] ?? "🌡️";
+        document.getElementById("weather-temp").innerText = `${Math.round(w.temperature)}°`;
+        document.getElementById("weather-desc").innerText = WMO_HE[w.weathercode] ?? "";
+        const strip = document.getElementById("forecast-strip");
+        strip.innerHTML = "";
+        d.daily.time.slice(0, 4).forEach((dt, i) => {
+            const el  = document.createElement("div");
+            el.className = "fc-day";
+            const name = i === 0 ? "היום" : DAYS_HE[new Date(dt).getDay()];
+            const ico  = WMO_ICO[d.daily.weathercode[i]] ?? "🌡️";
+            const hi   = Math.round(d.daily.temperature_2m_max[i]);
+            const lo   = Math.round(d.daily.temperature_2m_min[i]);
+            el.innerHTML = `
+                <span class="fc-name">${name}</span>
+                <span class="fc-ico">${ico}</span>
+                <span class="fc-hi">${hi}°</span>
+                <span class="fc-lo">${lo}°</span>`;
+            strip.appendChild(el);
+        });
+    } catch(e) { console.warn("Weather:", e); }
+}
+
+// ── News ───────────────────────────────────────────────────────────────────────
+let tickerAnim = null;
+
+async function loadNews() {
+    try {
+        const { items } = await fetch(
+            `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`
+        ).then(r => r.json());
+        if (!items?.length) return;
+
+        const ticker   = document.getElementById("ticker");
+        const viewport = ticker.parentElement;
+
+        const TZ = "Asia/Jerusalem";
+        const content = items.map(it => {
+            // rss2json returns UTC; append Z so Date parses as UTC, display converts to IL time
+            const raw = (it.pubDate ?? "").replace(" ", "T") + "Z";
+            const d   = new Date(raw);
+            const meta = isNaN(d) ? "" :
+                `<span class="ticker-meta">${
+                    d.toLocaleDateString("he-IL", { day:"numeric", month:"numeric", timeZone: TZ })
+                } ${
+                    d.toLocaleTimeString("he-IL", { hour:"2-digit", minute:"2-digit", timeZone: TZ })
+                }</span> `;
+            return `<span>${meta}${it.title}</span><span class="ticker-sep">◆</span>`;
+        }).join("");
+
+        if (tickerAnim) { tickerAnim.cancel(); tickerAnim = null; }
+        ticker.style.transform = "";
+        ticker.innerHTML = content + content;
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            const vw      = viewport.offsetWidth;
+            const singleW = ticker.scrollWidth / 2;
+            if (singleW <= 10) return;
+
+            // start just off the right edge; at end, copy2's first item is at vw → seamless loop
+            tickerAnim = ticker.animate(
+                [
+                    { transform: `translateX(${vw}px)` },
+                    { transform: `translateX(${vw - singleW}px)` }
+                ],
+                { duration: (singleW / 90) * 1000, iterations: Infinity, easing: "linear" }
+            );
+        }));
+
+    } catch(e) { console.warn("News:", e); }
+}
+
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && tickerAnim) tickerAnim.play();
+});
+
+// ── Refresh: re-fetch all data without reloading the page ─────────────────────
+async function refresh() {
+    const [hebrewInfo, sheetEvents] = await Promise.all([
+        loadHebrewDate(),
+        loadEvents()
+    ]);
+    loadCalendar(hebrewInfo, sheetEvents);
+    loadMessages();
+    loadBirthdays();
+    loadWeather();
+    loadNews();
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────────
+refresh();
+setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>
