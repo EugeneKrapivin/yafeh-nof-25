@@ -720,7 +720,7 @@ async function loadNews() {
                 } ${
                     d.toLocaleTimeString("he-IL", { hour:"2-digit", minute:"2-digit", timeZone: TZ })
                 }</span> `;
-            return `<span>${meta}${it.title}</span><span class="ticker-sep">◆</span>`;
+            return `<span>${meta}<bdi>${it.title}</bdi></span><span class="ticker-sep">◆</span>`;
         }).join("");
 
         if (tickerAnim) { tickerAnim.cancel(); tickerAnim = null; }
