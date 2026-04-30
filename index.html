@@ -98,25 +98,46 @@ header {
 #weather-temp { font-size: 46px; font-weight: 200; line-height: 1; }
 #weather-desc { font-size: 17px; color: #94a3b8; }
 
-.forecast-strip {
+/* hourly slots */
+.ws-hourly {
     display: flex;
     flex: 1;
-    padding: 0 10px;
+    padding: 0 6px;
+    overflow: hidden;
+}
+.wh-slot {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 1px;
+    padding: 0 4px;
+    border-left: 1px solid rgba(255,255,255,0.05);
+    min-width: 0;
+}
+.wh-slot:last-child { border-left: none; }
+.wh-time { color: #64748b; font-size: 13px; font-weight: 600; }
+.wh-ico  { font-size: 20px; line-height: 1; }
+.wh-temp { color: #e2e8f0; font-size: 15px; font-weight: 600; }
+
+/* daily slots */
+.ws-daily {
+    display: flex;
+    padding: 0 6px;
+    border-right: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
 }
 .fc-day {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 1px;
     padding: 0 16px;
     border-left: 1px solid rgba(255,255,255,0.05);
 }
 .fc-day:last-child { border-left: none; }
-.fc-name { color: #94a3b8; font-size: 15px; font-weight: 600; }
-.fc-ico  { font-size: 26px; }
-.fc-hi   { color: #fbbf24; font-size: 18px; font-weight: 600; }
-.fc-lo   { color: #60a5fa; font-size: 15px; }
+.fc-name { color: #94a3b8; font-size: 13px; font-weight: 600; }
+.fc-ico  { font-size: 22px; line-height: 1; }
+.fc-hi   { color: #fbbf24; font-size: 15px; font-weight: 600; }
+.fc-lo   { color: #60a5fa; font-size: 13px; }
 
 /* ── Main 2-column grid ── */
 main {
@@ -237,7 +258,7 @@ main {
 .ev.havdalah{ background: rgba(129,140,248,0.18); color: #a5b4fc; }
 .ev.rosh    { background: rgba(52,211,153,0.15);  color: #6ee7b7; }
 .ev.sheet-ev{ background: rgba(167,139,250,0.18); color: #c4b5fd; }
-.ev.bday    { background: rgba(251,191,36,0.18);  color: #fde68a; }
+.ev.bday    { background: rgba(251,191,36,0.18);  color: #fde68a; white-space: normal; font-size: 11px; line-height: 1.3; }
 
 /* ── Ticker ── */
 footer {
@@ -290,7 +311,8 @@ footer {
     #date            { font-size: 16px; }
     #hebrew-date     { font-size: 14px; color: #94a3b8; }
 
-    /* ── Weather strip stays full-width (no change needed) ── */
+    /* hide daily forecast in portrait — hourly fills the width */
+    .ws-daily { display: none; }
 
     /* ── Main: single column
          row 1 → messages | events  (fixed height)
@@ -341,7 +363,8 @@ footer {
         <span id="weather-temp">–°</span>
         <span id="weather-desc"></span>
     </div>
-    <div class="forecast-strip" id="forecast-strip"></div>
+    <div class="ws-hourly" id="ws-hourly"></div>
+    <div class="ws-daily"  id="ws-daily"></div>
 </div>
 
 <div id="bday-banner">
@@ -706,27 +729,51 @@ async function loadWeather() {
     try {
         const d = await fetch(
             `https://api.open-meteo.com/v1/forecast?latitude=${LATITUDE}&longitude=${LONGITUDE}`
-            + `&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Asia%2FJerusalem`
+            + `&current_weather=true`
+            + `&hourly=temperature_2m,weathercode`
+            + `&daily=weathercode,temperature_2m_max,temperature_2m_min`
+            + `&timezone=Asia%2FJerusalem&forecast_days=4`
         ).then(r => r.json());
+
+        // Current conditions
         const w = d.current_weather;
         document.getElementById("weather-icon").innerText = WMO_ICO[w.weathercode] ?? "🌡️";
         document.getElementById("weather-temp").innerText = `${Math.round(w.temperature)}°`;
         document.getElementById("weather-desc").innerText = WMO_HE[w.weathercode] ?? "";
-        const strip = document.getElementById("forecast-strip");
-        strip.innerHTML = "";
-        d.daily.time.slice(0, 4).forEach((dt, i) => {
-            const el  = document.createElement("div");
-            el.className = "fc-day";
-            const name = i === 0 ? "היום" : DAYS_HE[new Date(dt).getDay()];
-            const ico  = WMO_ICO[d.daily.weathercode[i]] ?? "🌡️";
-            const hi   = Math.round(d.daily.temperature_2m_max[i]);
-            const lo   = Math.round(d.daily.temperature_2m_min[i]);
-            el.innerHTML = `
-                <span class="fc-name">${name}</span>
-                <span class="fc-ico">${ico}</span>
-                <span class="fc-hi">${hi}°</span>
-                <span class="fc-lo">${lo}°</span>`;
-            strip.appendChild(el);
+
+        // Find current hour slot in Israel time
+        const nowIL   = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Jerusalem" });
+        const nowKey  = nowIL.slice(0, 10) + "T" + nowIL.slice(11, 13) + ":00";
+        const times   = d.hourly.time;
+        let startIdx  = times.indexOf(nowKey);
+        if (startIdx < 0) startIdx = 0;
+
+        // Hourly slots: current hour + next 7
+        const hourlyEl = document.getElementById("ws-hourly");
+        hourlyEl.innerHTML = "";
+        for (let i = startIdx; i < Math.min(startIdx + 8, times.length); i++) {
+            const slot = document.createElement("div");
+            slot.className = "wh-slot";
+            const timeLabel = times[i].slice(11, 16);
+            const ico  = WMO_ICO[d.hourly.weathercode[i]] ?? "🌡️";
+            const temp = Math.round(d.hourly.temperature_2m[i]);
+            slot.innerHTML = `<span class="wh-time">${timeLabel}</span><span class="wh-ico">${ico}</span><span class="wh-temp">${temp}°</span>`;
+            hourlyEl.appendChild(slot);
+        }
+
+        // Daily slots: next 3 days (skip today at index 0)
+        const dailyEl = document.getElementById("ws-daily");
+        dailyEl.innerHTML = "";
+        d.daily.time.slice(1, 4).forEach((dt, i) => {
+            const parts = dt.split("-");
+            const dow   = new Date(+parts[0], +parts[1] - 1, +parts[2]).getDay();
+            const day   = document.createElement("div");
+            day.className = "fc-day";
+            const ico = WMO_ICO[d.daily.weathercode[i + 1]] ?? "🌡️";
+            const hi  = Math.round(d.daily.temperature_2m_max[i + 1]);
+            const lo  = Math.round(d.daily.temperature_2m_min[i + 1]);
+            day.innerHTML = `<span class="fc-name">${DAYS_HE[dow]}</span><span class="fc-ico">${ico}</span><span class="fc-hi">${hi}°</span><span class="fc-lo">${lo}°</span>`;
+            dailyEl.appendChild(day);
         });
     } catch(e) { console.warn("Weather:", e); }
 }
