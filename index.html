@@ -237,6 +237,7 @@ main {
 .ev.havdalah{ background: rgba(129,140,248,0.18); color: #a5b4fc; }
 .ev.rosh    { background: rgba(52,211,153,0.15);  color: #6ee7b7; }
 .ev.sheet-ev{ background: rgba(167,139,250,0.18); color: #c4b5fd; }
+.ev.bday    { background: rgba(251,191,36,0.18);  color: #fde68a; }
 
 /* ── Ticker ── */
 footer {
@@ -469,7 +470,7 @@ async function loadHebrewDate() {
 }
 
 // ── Calendar ──────────────────────────────────────────────────────────────────
-async function loadCalendar(hebrewDateInfo, sheetEventRows) {
+async function loadCalendar(hebrewDateInfo, sheetEventRows, birthdayRows) {
     const grid = document.getElementById("cal-grid");
     const today = new Date();
     const year  = today.getFullYear();
@@ -525,6 +526,22 @@ async function loadCalendar(hebrewDateInfo, sheetEventRows) {
             const key = evDate.getDate();
             if (!byDay[key]) byDay[key] = [];
             byDay[key].push({ category: "sheet-ev", title: content + (loc ? ` · ${loc}` : "") });
+        });
+    }
+
+    // Map birthdays by day-of-month (DD/MM matching current month)
+    const mm = String(month + 1).padStart(2, "0");
+    if (birthdayRows) {
+        birthdayRows.forEach(r => {
+            const v    = Object.values(r);
+            const bday = v[2]?.trim();
+            if (!bday) return;
+            const [dd, bm] = bday.split("/");
+            if (bm !== mm) return;
+            const key  = parseInt(dd, 10);
+            const name = v[1]?.trim() ? `${v[0]?.trim()} (${v[1].trim()})` : v[0]?.trim();
+            if (!byDay[key]) byDay[key] = [];
+            byDay[key].push({ category: "bday", title: `🎂 ${name}` });
         });
     }
 
@@ -585,6 +602,8 @@ async function loadCalendar(hebrewDateInfo, sheetEventRows) {
                 cls  += sub === "modern" ? " modern" : " holiday";
             } else if (cat === "sheet-ev") {
                 cls  += " sheet-ev";
+            } else if (cat === "bday") {
+                cls  += " bday";
             } else {
                 return;
             }
@@ -661,19 +680,25 @@ async function loadEvents() {
 
 // ── Birthdays ─────────────────────────────────────────────────────────────────
 // Columns: name | apt | birthday (DD/MM)
+// Returns rows for calendar cross-use
 async function loadBirthdays() {
     try {
         const rows = await fetch(sheetUrl("birthdays")).then(r => r.json());
         const t    = new Date();
         const ddmm = `${String(t.getDate()).padStart(2,"0")}/${String(t.getMonth()+1).padStart(2,"0")}`;
         const today = rows.filter(r => Object.values(r)[2]?.trim().startsWith(ddmm));
-        if (!today.length) return;
-        document.getElementById("bday-names").innerText = today.map(r => {
-            const v = Object.values(r);
-            return v[1]?.trim() ? `${v[0]?.trim()} (דירה ${v[1].trim()})` : v[0]?.trim();
-        }).join("  •  ");
-        document.getElementById("bday-banner").classList.add("visible");
-    } catch(e) { console.warn("Birthdays:", e); }
+        // banner only for today
+        const banner = document.getElementById("bday-banner");
+        banner.classList.remove("visible");
+        if (today.length) {
+            document.getElementById("bday-names").innerText = today.map(r => {
+                const v = Object.values(r);
+                return v[1]?.trim() ? `${v[0]?.trim()} (דירה ${v[1].trim()})` : v[0]?.trim();
+            }).join("  •  ");
+            banner.classList.add("visible");
+        }
+        return rows;
+    } catch(e) { console.warn("Birthdays:", e); return []; }
 }
 
 // ── Weather ───────────────────────────────────────────────────────────────────
@@ -760,13 +785,13 @@ document.addEventListener("visibilitychange", () => {
 
 // ── Refresh: re-fetch all data without reloading the page ─────────────────────
 async function refresh() {
-    const [hebrewInfo, sheetEvents] = await Promise.all([
+    const [hebrewInfo, sheetEvents, birthdayRows] = await Promise.all([
         loadHebrewDate(),
-        loadEvents()
+        loadEvents(),
+        loadBirthdays()
     ]);
-    loadCalendar(hebrewInfo, sheetEvents);
+    loadCalendar(hebrewInfo, sheetEvents, birthdayRows);
     loadMessages();
-    loadBirthdays();
     loadWeather();
     loadNews();
 }
