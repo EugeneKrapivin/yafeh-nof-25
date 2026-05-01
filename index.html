@@ -221,6 +221,7 @@ main {
     gap: 3px;
     flex: 1;
     min-height: 0;
+    overflow: hidden;
 }
 
 /* equal rows via auto-rows — will be overridden by JS after render */
@@ -336,7 +337,7 @@ footer {
          row 2 → calendar           (fills remaining space)       ── */
     main {
         grid-template-columns: 1fr;
-        grid-template-rows: 220px 1fr;
+        grid-template-rows: minmax(220px, auto) 1fr;
         gap: var(--gap);
         padding: var(--pad);
         padding-bottom: calc(var(--ticker-h) + 18px);
@@ -350,7 +351,7 @@ footer {
     }
 
     /* calendar fills full remaining row */
-    .cal-col { min-height: 0; }
+    .cal-col { min-height: 0; overflow: hidden; }
 
     /* Slightly smaller text so more items fit */
     .item-text  { font-size: 20px; }
