@@ -1043,7 +1043,7 @@ function setAlertLevel(level) {
 // Test helpers (call from console): showAlert(), showWarning(), clearAlert()
 function showAlert()   { setAlertLevel("alert"); }
 function showWarning() { setAlertLevel("warning"); }
-function clearAlert()  { setAlertLevel("clear"); }
+function clearAlert()  { setAlertLevel("clear"); loadBirthdays(); }
 
 // ── Siren (Web Audio API) ─────────────────────────────────────────────────────
 let sirenCtx = null, sirenOsc = null, sirenSweepId = null;
