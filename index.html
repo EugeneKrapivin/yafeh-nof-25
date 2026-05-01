@@ -65,9 +65,11 @@ header {
 /* ── Birthday banner ── */
 #bday-banner {
     display: none; align-items: center; gap: 16px;
-    padding: 10px 36px;
+    padding: 10px 24px;
     background: linear-gradient(90deg, rgba(251,191,36,0.18), rgba(251,191,36,0.05));
-    border-bottom: 1px solid rgba(251,191,36,0.25);
+    border: 1px solid rgba(251,191,36,0.3);
+    border-radius: 16px;
+    margin: 0 10px 4px;
 }
 #bday-banner.visible { display: flex; }
 .bday-icon  { font-size: 32px; flex-shrink: 0; }
@@ -79,12 +81,12 @@ header {
     display: flex;
     align-items: center;
     gap: 0;
-    padding: 0 20px;
+    padding: 0 16px;
     background: rgba(6,13,26,0.65);
     backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    height: 72px;
-    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    margin: 4px 10px;
 }
 .ws-current {
     display: flex;
