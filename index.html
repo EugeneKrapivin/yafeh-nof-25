@@ -475,10 +475,10 @@ const RSS_URL          = "https://www.ynet.co.il/Integration/StoryRss1854.xml";
 const NEWS_INTERVAL_MS = 9000;
 const REFRESH_MS       = 5 * 60 * 1000;
 // ── Red Alert (Pikud HaOref) ──
-const ALERT_AREA            = "חדרה מזרח";
-const ALERT_WS_URL          = "wss://ws.tzevaadom.co.il/socket?platform=WEB";
-const ALERT_WS_HEARTBEAT_MS = 45000;
-const SIREN_ENABLED         = false;
+const ALERT_AREA    = "חדרה מזרח";
+const ALERT_POLL_MS = 3000;
+const ALERT_URL     = "https://www.oref.org.il/warningMessages/alert/Alerts.json";
+const SIREN_ENABLED = false;
 // ───────────────────────────────────────────────────────────────────────────
 
 const sheetUrl = tab =>
@@ -919,38 +919,22 @@ function tryPlay() {
 }
 tryPlay();
 
-// ── Red Alert (Pikud HaOref via tzevaadom WebSocket) ──────────────────────────
+// ── Red Alert (Pikud HaOref polling) ──────────────────────────────────────────
 let alertActive = false;
-let alertWs = null;
-let alertReconnectDelay = 1000;
-let alertHeartbeatId = null;
+let alertClearTimer = null;
 
-function connectAlertWs() {
-    try { alertWs = new WebSocket(ALERT_WS_URL); } catch(e) { return; }
-
-    alertWs.onopen = () => {
-        alertReconnectDelay = 1000;
-        if (alertHeartbeatId) clearInterval(alertHeartbeatId);
-        alertHeartbeatId = setInterval(() => {
-            if (alertWs?.readyState === WebSocket.OPEN) alertWs.send("ping");
-        }, ALERT_WS_HEARTBEAT_MS);
-    };
-
-    alertWs.onmessage = (ev) => {
-        try {
-            const msg = JSON.parse(ev.data);
-            if (msg.type === "ALERT") {
-                const cities = msg.data?.cities ?? [];
-                if (cities.includes(ALERT_AREA)) showAlert();
-            }
-        } catch(e) {}
-    };
-
-    alertWs.onclose = alertWs.onerror = () => {
-        if (alertHeartbeatId) { clearInterval(alertHeartbeatId); alertHeartbeatId = null; }
-        setTimeout(connectAlertWs, alertReconnectDelay);
-        alertReconnectDelay = Math.min(alertReconnectDelay * 2, 30000);
-    };
+async function checkAlerts() {
+    try {
+        const res = await fetch(ALERT_URL, {
+            headers: { "X-Requested-With": "XMLHttpRequest", "Referer": "https://www.oref.org.il/" }
+        });
+        const text = await res.text();
+        if (!text?.trim()) { clearAlert(); return; }
+        const data = JSON.parse(text);
+        const cities = data?.data ?? [];
+        if (cities.includes(ALERT_AREA)) showAlert();
+        else clearAlert();
+    } catch(e) {}
 }
 
 function showAlert() {
@@ -959,7 +943,6 @@ function showAlert() {
     document.getElementById("alert-banner").classList.add("visible");
     document.getElementById("bday-banner").classList.remove("visible");
     if (SIREN_ENABLED) startSiren();
-    setTimeout(clearAlert, 180000);
 }
 
 function clearAlert() {
@@ -1001,7 +984,8 @@ function stopSiren() {
 // ── Boot ───────────────────────────────────────────────────────────────────────
 refresh();
 setInterval(refresh, REFRESH_MS);
-connectAlertWs();
+checkAlerts();
+setInterval(checkAlerts, ALERT_POLL_MS);
 </script>
 </body>
 </html>
