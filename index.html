@@ -301,7 +301,7 @@ footer {
 @media (orientation: portrait) {
     :root {
         --header-h:  72px;
-        --weather-h: 64px;
+        --weather-h: 95px;
         --ticker-h:  64px;
         --gap:       10px;
         --pad:       10px;
@@ -319,6 +319,16 @@ footer {
 
     /* hide daily forecast in portrait — hourly fills the width */
     .ws-daily { display: none; }
+
+    /* Portrait weather: stacked — current summary on top, hourly below */
+    #weather-strip   { flex-direction: column; padding: 5px 12px; gap: 4px; align-items: stretch; }
+    .ws-current      { border-left: none; padding-left: 0; justify-content: center; gap: 10px; }
+    #weather-icon    { font-size: 24px; }
+    #weather-temp    { font-size: 22px; }
+    #weather-desc    { font-size: 15px; }
+    .wh-time         { font-size: 11px; }
+    .wh-ico          { font-size: 15px; }
+    .wh-temp         { font-size: 12px; }
 
     /* ── Main: single column
          row 1 → messages | events  (fixed height)
