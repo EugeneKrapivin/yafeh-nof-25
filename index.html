@@ -929,12 +929,13 @@ async function checkAlerts() {
             headers: { "X-Requested-With": "XMLHttpRequest", "Referer": "https://www.oref.org.il/" }
         });
         const text = await res.text();
-        if (!text?.trim()) { clearAlert(); return; }
+        if (!text?.trim()) { clearAlert(); return true; }
         const data = JSON.parse(text);
         const cities = data?.data ?? [];
         if (cities.includes(ALERT_AREA)) showAlert();
         else clearAlert();
-    } catch(e) {}
+        return true;
+    } catch(e) { return false; }
 }
 
 function showAlert() {
@@ -984,8 +985,9 @@ function stopSiren() {
 // ── Boot ───────────────────────────────────────────────────────────────────────
 refresh();
 setInterval(refresh, REFRESH_MS);
-checkAlerts();
-setInterval(checkAlerts, ALERT_POLL_MS);
+
+// Only start alert polling if the first request succeeds (requires --disable-web-security)
+checkAlerts().then(ok => { if (ok) setInterval(checkAlerts, ALERT_POLL_MS); });
 </script>
 </body>
 </html>
