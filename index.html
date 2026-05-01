@@ -891,22 +891,12 @@ async function refresh() {
 }
 
 // ── Audio ──────────────────────────────────────────────────────────────────────
-const PLAYLIST = [
-    "audio/hitslab-lounge-jazz-elevator-music-324902.mp3",
-    "audio/ikoliks_aj-jazz-lounge-elevator-music-332339.mp3"
-];
-let audioIdx = 0;
 const bgAudio  = document.getElementById("bg-audio");
 const muteBtn  = document.getElementById("mute-btn");
 
 bgAudio.volume = 0.35;
-bgAudio.src    = PLAYLIST[0];
-
-bgAudio.addEventListener("ended", () => {
-    audioIdx = (audioIdx + 1) % PLAYLIST.length;
-    bgAudio.src = PLAYLIST[audioIdx];
-    bgAudio.play().catch(() => {});
-});
+bgAudio.src    = "audio/audio_b63cf84264.mp3";
+bgAudio.loop   = true;
 
 muteBtn.addEventListener("click", () => {
     bgAudio.muted = !bgAudio.muted;
