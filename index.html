@@ -503,7 +503,7 @@ const REFRESH_MS       = 5 * 60 * 1000;
 const ALERT_AREA    = "חדרה מזרח";
 const ALERT_CAT_RED = [1];           // confirmed missile — red alert (cat values TBD)
 const ALERT_CAT_WARN= [2];           // ballistic warning — yellow (cat values TBD)
-const ALERT_WS_URL  = "wss://ws.tzevaadom.co.il/socket?platform=ANDROID";
+const ALERT_WS_URL  = "wss://ws.tzevaadom.co.il/socket?platform=ANDROID&tzofar=" + [...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");
 const ALERT_POLL_MS = 3000;
 const ALERT_URL     = "https://www.oref.org.il/warningMessages/alert/Alerts.json";
 const SIREN_ENABLED = false;
