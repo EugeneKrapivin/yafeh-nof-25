@@ -255,6 +255,7 @@ main {
 .ev     { font-size: 12px; padding: 1px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ev.bday{ white-space: normal; font-size: 11px; line-height: 1.3; }
 .ev-hdr { font-size: 12px; padding: 1px 3px; white-space: nowrap; }
+.ev-ico  { font-size: 17px; line-height: 1; }
 .ev.holiday,  .ev-hdr.holiday  { background: rgba(251,191,36,0.18); color: #fde68a; }
 .ev.modern,   .ev-hdr.modern   { background: rgba(45,212,180,0.15);  color: #5eead4; }
 .ev.candles,  .ev-hdr.candles  { background: rgba(251,146,60,0.18);  color: #fdba74; }
@@ -616,11 +617,11 @@ async function loadCalendar(hebrewDateInfo, sheetEventRows, birthdayRows) {
             if (cat === "candles") {
                 const t = new Date(ev.date).toLocaleTimeString("he-IL", {hour:"2-digit", minute:"2-digit", timeZone:"Asia/Jerusalem"});
                 label = `🕯 ${t}`;
-                hdrHtml += `<span class="ev-hdr candles" title="${label}">${label}</span>`;
+                hdrHtml += `<span class="ev-hdr candles" title="${label}"><span class="ev-ico">🕯</span> ${t}</span>`;
             } else if (cat === "havdalah") {
                 const t = new Date(ev.date).toLocaleTimeString("he-IL", {hour:"2-digit", minute:"2-digit", timeZone:"Asia/Jerusalem"});
                 label = `✨ ${t}`;
-                hdrHtml += `<span class="ev-hdr havdalah" title="${label}">${label}</span>`;
+                hdrHtml += `<span class="ev-hdr havdalah" title="${label}"><span class="ev-ico">✨</span> ${t}</span>`;
             } else if (cat === "roshchodesh") {
                 hdrHtml += `<span class="ev-hdr rosh" title="${label}">${label}</span>`;
             } else if (cat === "holiday") {
