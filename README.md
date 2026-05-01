@@ -4,7 +4,9 @@ A full-screen building information display designed for a lobby TV. Built as a s
 
 **Live display:** https://eugenekrapivin.github.io/yafeh-nof-25/
 
-![Landscape screenshot](https://raw.githubusercontent.com/EugeneKrapivin/yafeh-nof-25/main/.github/screenshot.png)
+| Landscape | Portrait |
+|---|---|
+| ![Landscape](https://raw.githubusercontent.com/EugeneKrapivin/yafeh-nof-25/main/.github/screenshot.png) | ![Portrait](https://raw.githubusercontent.com/EugeneKrapivin/yafeh-nof-25/main/.github/screenshot-portrait.png) |
 
 ---
 
