@@ -503,6 +503,8 @@ const REFRESH_MS       = 5 * 60 * 1000;
 const ALERT_AREA    = "חדרה מזרח";
 const ALERT_CAT_RED = [1];           // confirmed missile — red alert (cat values TBD)
 const ALERT_CAT_WARN= [2];           // ballistic warning — yellow (cat values TBD)
+const ALERT_WS_URL  = "wss://ws.tzevaadom.co.il/socket?platform=WEB";
+const ALERT_WS_HEARTBEAT_MS = 45000;
 const ALERT_POLL_MS = 3000;
 const ALERT_URL     = "https://www.oref.org.il/warningMessages/alert/Alerts.json";
 const SIREN_ENABLED = false;
@@ -946,25 +948,72 @@ function tryPlay() {
 }
 tryPlay();
 
-// ── Red Alert (Pikud HaOref polling) ──────────────────────────────────────────
+// ── Red Alert (Pikud HaOref — WebSocket primary, HTTP polling fallback) ───────
 let alertLevel = "clear"; // "clear" | "warning" | "alert"
+let alertWsConnected = false;
+let alertHeartbeatId = null;
+let alertPollId = null;
+let alertClearTimer = null;
 
-async function checkAlerts() {
+function connectAlertWs() {
+    let ws;
+    try { ws = new WebSocket(ALERT_WS_URL); } catch(e) { startAlertPolling(); return; }
+
+    ws.onopen = () => {
+        alertWsConnected = true;
+        if (alertHeartbeatId) clearInterval(alertHeartbeatId);
+        alertHeartbeatId = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) ws.send("ping");
+        }, ALERT_WS_HEARTBEAT_MS);
+    };
+
+    ws.onmessage = (ev) => {
+        try {
+            const msg = JSON.parse(ev.data);
+            if (msg.type === "ALERT") {
+                const cities = msg.data?.cities ?? [];
+                const threat = msg.data?.threat;
+                if (!cities.includes(ALERT_AREA)) return;
+                if (ALERT_CAT_WARN.includes(threat)) setAlertLevel("warning");
+                else setAlertLevel("alert");
+                if (alertClearTimer) clearTimeout(alertClearTimer);
+                alertClearTimer = setTimeout(() => setAlertLevel("clear"), 180000);
+            }
+        } catch(e) {}
+    };
+
+    ws.onclose = ws.onerror = () => {
+        if (alertHeartbeatId) { clearInterval(alertHeartbeatId); alertHeartbeatId = null; }
+        if (alertWsConnected) {
+            alertWsConnected = false;
+            setTimeout(connectAlertWs, 5000);
+        } else {
+            startAlertPolling();
+        }
+    };
+}
+
+// Fallback: HTTP polling (requires --disable-web-security in Chrome kiosk)
+async function checkAlertsPoll() {
     try {
         const res = await fetch(ALERT_URL, {
             headers: { "X-Requested-With": "XMLHttpRequest", "Referer": "https://www.oref.org.il/" }
         });
         const text = await res.text();
-        if (!text?.trim()) { setAlertLevel("clear"); return true; }
+        if (!text?.trim()) { setAlertLevel("clear"); return; }
         const data = JSON.parse(text);
         const cities = data?.data ?? [];
         const cat = Number(data?.cat);
-        if (!cities.includes(ALERT_AREA)) { setAlertLevel("clear"); return true; }
+        if (!cities.includes(ALERT_AREA)) { setAlertLevel("clear"); return; }
         if (ALERT_CAT_RED.includes(cat)) setAlertLevel("alert");
         else if (ALERT_CAT_WARN.includes(cat)) setAlertLevel("warning");
-        else setAlertLevel("alert"); // unknown category → treat as red
-        return true;
-    } catch(e) { return false; }
+        else setAlertLevel("alert");
+    } catch(e) {}
+}
+
+function startAlertPolling() {
+    if (alertPollId) return;
+    alertPollId = setInterval(checkAlertsPoll, ALERT_POLL_MS);
 }
 
 function setAlertLevel(level) {
@@ -1028,9 +1077,7 @@ function stopSiren() {
 // ── Boot ───────────────────────────────────────────────────────────────────────
 refresh();
 setInterval(refresh, REFRESH_MS);
-
-// Only start alert polling if the first request succeeds (requires --disable-web-security)
-checkAlerts().then(ok => { if (ok) setInterval(checkAlerts, ALERT_POLL_MS); });
+connectAlertWs();
 </script>
 </body>
 </html>
