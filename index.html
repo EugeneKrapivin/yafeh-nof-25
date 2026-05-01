@@ -77,6 +77,29 @@ header {
 .bday-label { font-size: 25px; font-weight: 700; color: #fbbf24; flex-shrink: 0; }
 .bday-names { font-size: 24px; color: #fde68a; }
 
+/* ── Red alert banner ── */
+#alert-banner {
+    display: none; align-items: center; justify-content: center; gap: 16px;
+    padding: 14px 24px;
+    background: linear-gradient(90deg, rgba(220,38,38,0.45), rgba(220,38,38,0.15));
+    border: 2px solid rgba(239,68,68,0.8);
+    border-radius: 16px;
+    margin: 0 10px 4px;
+    animation: alert-pulse 1s ease-in-out infinite;
+}
+#alert-banner.visible { display: flex; }
+.alert-icon { font-size: 34px; animation: alert-blink 0.6s ease-in-out infinite; }
+.alert-text { font-size: 28px; font-weight: 700; color: #fde68a; text-align: center; }
+
+@keyframes alert-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+}
+@keyframes alert-pulse {
+    0%, 100% { border-color: rgba(239,68,68,0.8); }
+    50% { border-color: rgba(251,191,36,0.9); }
+}
+
 /* ── Weather strip ── */
 #weather-strip {
     display: flex;
@@ -391,6 +414,12 @@ footer {
     <span class="bday-names" id="bday-names"></span>
 </div>
 
+<div id="alert-banner">
+    <span class="alert-icon">🚨</span>
+    <span class="alert-text">צבע אדום! יש להכנס למרחב מוגן במיידי ולחכות להוראות פיקוד העורף!</span>
+    <span class="alert-icon">🚨</span>
+</div>
+
 <main>
 
     <!-- Left: messages + events -->
@@ -445,6 +474,11 @@ const LONGITUDE        = 34.946715;
 const RSS_URL          = "https://www.ynet.co.il/Integration/StoryRss1854.xml";
 const NEWS_INTERVAL_MS = 9000;
 const REFRESH_MS       = 5 * 60 * 1000;
+// ── Red Alert (Pikud HaOref) ──
+const ALERT_AREA            = "חדרה מזרח";
+const ALERT_WS_URL          = "wss://ws.tzevaadom.co.il/socket?platform=WEB";
+const ALERT_WS_HEARTBEAT_MS = 45000;
+const SIREN_ENABLED         = false;
 // ───────────────────────────────────────────────────────────────────────────
 
 const sheetUrl = tab =>
@@ -895,9 +929,89 @@ function tryPlay() {
 }
 tryPlay();
 
+// ── Red Alert (Pikud HaOref via tzevaadom WebSocket) ──────────────────────────
+let alertActive = false;
+let alertWs = null;
+let alertReconnectDelay = 1000;
+let alertHeartbeatId = null;
+
+function connectAlertWs() {
+    try { alertWs = new WebSocket(ALERT_WS_URL); } catch(e) { return; }
+
+    alertWs.onopen = () => {
+        alertReconnectDelay = 1000;
+        if (alertHeartbeatId) clearInterval(alertHeartbeatId);
+        alertHeartbeatId = setInterval(() => {
+            if (alertWs?.readyState === WebSocket.OPEN) alertWs.send("ping");
+        }, ALERT_WS_HEARTBEAT_MS);
+    };
+
+    alertWs.onmessage = (ev) => {
+        try {
+            const msg = JSON.parse(ev.data);
+            if (msg.type === "ALERT") {
+                const cities = msg.data?.cities ?? [];
+                if (cities.includes(ALERT_AREA)) showAlert();
+            }
+        } catch(e) {}
+    };
+
+    alertWs.onclose = alertWs.onerror = () => {
+        if (alertHeartbeatId) { clearInterval(alertHeartbeatId); alertHeartbeatId = null; }
+        setTimeout(connectAlertWs, alertReconnectDelay);
+        alertReconnectDelay = Math.min(alertReconnectDelay * 2, 30000);
+    };
+}
+
+function showAlert() {
+    if (alertActive) return;
+    alertActive = true;
+    document.getElementById("alert-banner").classList.add("visible");
+    document.getElementById("bday-banner").classList.remove("visible");
+    if (SIREN_ENABLED) startSiren();
+    setTimeout(clearAlert, 180000);
+}
+
+function clearAlert() {
+    if (!alertActive) return;
+    alertActive = false;
+    document.getElementById("alert-banner").classList.remove("visible");
+    if (SIREN_ENABLED) stopSiren();
+}
+
+// ── Siren (Web Audio API) ─────────────────────────────────────────────────────
+let sirenCtx = null, sirenOsc = null, sirenSweepId = null;
+
+function startSiren() {
+    if (!SIREN_ENABLED || sirenCtx) return;
+    sirenCtx = new AudioContext();
+    sirenOsc = sirenCtx.createOscillator();
+    const gain = sirenCtx.createGain();
+    sirenOsc.type = "sawtooth";
+    sirenOsc.frequency.value = 440;
+    gain.gain.value = 0.4;
+    sirenOsc.connect(gain).connect(sirenCtx.destination);
+    sirenOsc.start();
+    (function sweep() {
+        if (!sirenCtx) return;
+        sirenOsc.frequency.setValueAtTime(440, sirenCtx.currentTime);
+        sirenOsc.frequency.setValueAtTime(520, sirenCtx.currentTime + 0.5);
+        sirenSweepId = setTimeout(sweep, 1000);
+    })();
+    bgAudio.pause();
+}
+
+function stopSiren() {
+    if (sirenSweepId) { clearTimeout(sirenSweepId); sirenSweepId = null; }
+    if (sirenOsc) { sirenOsc.stop(); sirenOsc = null; }
+    if (sirenCtx) { sirenCtx.close(); sirenCtx = null; }
+    bgAudio.play().catch(() => {});
+}
+
 // ── Boot ───────────────────────────────────────────────────────────────────────
 refresh();
 setInterval(refresh, REFRESH_MS);
+connectAlertWs();
 </script>
 </body>
 </html>
