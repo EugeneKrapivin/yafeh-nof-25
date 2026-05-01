@@ -100,6 +100,25 @@ header {
     50% { border-color: rgba(251,191,36,0.9); }
 }
 
+/* ── Warning banner (ballistic pre-alert) ── */
+#warning-banner {
+    display: none; align-items: center; justify-content: center; gap: 16px;
+    padding: 12px 24px;
+    background: linear-gradient(90deg, rgba(251,191,36,0.3), rgba(251,191,36,0.1));
+    border: 2px solid rgba(251,191,36,0.7);
+    border-radius: 16px;
+    margin: 0 10px 4px;
+    animation: warn-pulse 1.5s ease-in-out infinite;
+}
+#warning-banner.visible { display: flex; }
+.warning-icon { font-size: 30px; animation: alert-blink 1s ease-in-out infinite; }
+.warning-text { font-size: 24px; font-weight: 700; color: #fde68a; text-align: center; }
+
+@keyframes warn-pulse {
+    0%, 100% { border-color: rgba(251,191,36,0.7); }
+    50% { border-color: rgba(239,68,68,0.7); }
+}
+
 /* ── Weather strip ── */
 #weather-strip {
     display: flex;
@@ -420,6 +439,12 @@ footer {
     <span class="alert-icon">🚨</span>
 </div>
 
+<div id="warning-banner">
+    <span class="warning-icon">⚠️</span>
+    <span class="warning-text">התראת טילים באזורנו — יש להיות בסמוך למרחב מוגן</span>
+    <span class="warning-icon">⚠️</span>
+</div>
+
 <main>
 
     <!-- Left: messages + events -->
@@ -476,6 +501,8 @@ const NEWS_INTERVAL_MS = 9000;
 const REFRESH_MS       = 5 * 60 * 1000;
 // ── Red Alert (Pikud HaOref) ──
 const ALERT_AREA    = "חדרה מזרח";
+const ALERT_CAT_RED = [1];           // confirmed missile — red alert (cat values TBD)
+const ALERT_CAT_WARN= [2];           // ballistic warning — yellow (cat values TBD)
 const ALERT_POLL_MS = 3000;
 const ALERT_URL     = "https://www.oref.org.il/warningMessages/alert/Alerts.json";
 const SIREN_ENABLED = false;
@@ -920,8 +947,7 @@ function tryPlay() {
 tryPlay();
 
 // ── Red Alert (Pikud HaOref polling) ──────────────────────────────────────────
-let alertActive = false;
-let alertClearTimer = null;
+let alertLevel = "clear"; // "clear" | "warning" | "alert"
 
 async function checkAlerts() {
     try {
@@ -929,29 +955,46 @@ async function checkAlerts() {
             headers: { "X-Requested-With": "XMLHttpRequest", "Referer": "https://www.oref.org.il/" }
         });
         const text = await res.text();
-        if (!text?.trim()) { clearAlert(); return true; }
+        if (!text?.trim()) { setAlertLevel("clear"); return true; }
         const data = JSON.parse(text);
         const cities = data?.data ?? [];
-        if (cities.includes(ALERT_AREA)) showAlert();
-        else clearAlert();
+        const cat = Number(data?.cat);
+        if (!cities.includes(ALERT_AREA)) { setAlertLevel("clear"); return true; }
+        if (ALERT_CAT_RED.includes(cat)) setAlertLevel("alert");
+        else if (ALERT_CAT_WARN.includes(cat)) setAlertLevel("warning");
+        else setAlertLevel("alert"); // unknown category → treat as red
         return true;
     } catch(e) { return false; }
 }
 
-function showAlert() {
-    if (alertActive) return;
-    alertActive = true;
-    document.getElementById("alert-banner").classList.add("visible");
-    document.getElementById("bday-banner").classList.remove("visible");
-    if (SIREN_ENABLED) startSiren();
+function setAlertLevel(level) {
+    if (level === alertLevel) return;
+    const prev = alertLevel;
+    alertLevel = level;
+    const alertEl   = document.getElementById("alert-banner");
+    const warnEl    = document.getElementById("warning-banner");
+    const bdayEl    = document.getElementById("bday-banner");
+
+    alertEl.classList.remove("visible");
+    warnEl.classList.remove("visible");
+
+    if (level === "alert") {
+        alertEl.classList.add("visible");
+        bdayEl.classList.remove("visible");
+        if (SIREN_ENABLED) startSiren();
+    } else if (level === "warning") {
+        warnEl.classList.add("visible");
+        bdayEl.classList.remove("visible");
+        if (SIREN_ENABLED && prev === "clear") startSiren();
+    } else {
+        if (SIREN_ENABLED && prev !== "clear") stopSiren();
+    }
 }
 
-function clearAlert() {
-    if (!alertActive) return;
-    alertActive = false;
-    document.getElementById("alert-banner").classList.remove("visible");
-    if (SIREN_ENABLED) stopSiren();
-}
+// Test helpers (call from console): showAlert(), showWarning(), clearAlert()
+function showAlert()   { setAlertLevel("alert"); }
+function showWarning() { setAlertLevel("warning"); }
+function clearAlert()  { setAlertLevel("clear"); }
 
 // ── Siren (Web Audio API) ─────────────────────────────────────────────────────
 let sirenCtx = null, sirenOsc = null, sirenSweepId = null;
