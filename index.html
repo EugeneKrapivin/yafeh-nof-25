@@ -503,7 +503,6 @@ const REFRESH_MS       = 5 * 60 * 1000;
 const ALERT_AREA    = "חדרה מזרח";
 const ALERT_CAT_RED = [1];           // confirmed missile — red alert (cat values TBD)
 const ALERT_CAT_WARN= [2];           // ballistic warning — yellow (cat values TBD)
-const ALERT_WS_URL  = "wss://ws.tzevaadom.co.il/socket?platform=ANDROID&tzofar=" + [...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");
 const ALERT_POLL_MS = 3000;
 const ALERT_URL     = "https://www.oref.org.il/warningMessages/alert/Alerts.json";
 const SIREN_ENABLED = false;
@@ -947,59 +946,8 @@ function tryPlay() {
 }
 tryPlay();
 
-// ── Red Alert (Pikud HaOref — WebSocket to tzevaadom, HTTP polling fallback) ─
+// ── Red Alert (Pikud HaOref — polls oref.org.il, requires --disable-web-security) ─
 let alertLevel = "clear"; // "clear" | "warning" | "alert"
-let alertClearTimer = null;
-let alertWsOk = false;
-
-function connectAlertWs() {
-    let ws;
-    try { ws = new WebSocket(ALERT_WS_URL); } catch(e) { startAlertPolling(); return; }
-
-    const pingId = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) ws.send("ping");
-    }, 60000);
-
-    ws.onopen = () => {
-        alertWsOk = true;
-        console.log("[Alert] WebSocket connected (ANDROID)");
-    };
-
-    ws.onmessage = (ev) => {
-        if (!ev.data || ev.data === "pong") return;
-        try {
-            const msg = JSON.parse(ev.data);
-            if (msg.type === "ALERT") {
-                const cities = msg.data?.cities ?? [];
-                const threat = msg.data?.threat;
-                if (!cities.includes(ALERT_AREA)) return;
-                if (ALERT_CAT_WARN.includes(threat)) setAlertLevel("warning");
-                else setAlertLevel("alert");
-                if (alertClearTimer) clearTimeout(alertClearTimer);
-                alertClearTimer = setTimeout(() => setAlertLevel("clear"), 180000);
-            } else if (msg.type === "SYSTEM_MESSAGE") {
-                const body = msg.data?.bodyHe ?? msg.data?.body ?? "";
-                const cities = msg.data?.cities ?? [];
-                if (cities.includes(ALERT_AREA) || body.includes(ALERT_AREA)) {
-                    setAlertLevel("warning");
-                    if (alertClearTimer) clearTimeout(alertClearTimer);
-                    alertClearTimer = setTimeout(() => setAlertLevel("clear"), 300000);
-                }
-            }
-        } catch(e) {}
-    };
-
-    ws.onclose = ws.onerror = () => {
-        clearInterval(pingId);
-        if (alertWsOk) {
-            alertWsOk = false;
-            setTimeout(connectAlertWs, 5000);
-        } else {
-            console.log("[Alert] WebSocket failed, falling back to HTTP polling");
-            startAlertPolling();
-        }
-    };
-}
 
 async function checkAlerts() {
     try {
@@ -1016,10 +964,6 @@ async function checkAlerts() {
         else if (ALERT_CAT_WARN.includes(cat)) setAlertLevel("warning");
         else setAlertLevel("alert");
     } catch(e) {}
-}
-
-function startAlertPolling() {
-    setInterval(checkAlerts, ALERT_POLL_MS);
 }
 
 function setAlertLevel(level) {
@@ -1083,7 +1027,7 @@ function stopSiren() {
 // ── Boot ───────────────────────────────────────────────────────────────────────
 refresh();
 setInterval(refresh, REFRESH_MS);
-connectAlertWs();
+setInterval(checkAlerts, ALERT_POLL_MS);
 </script>
 </body>
 </html>
