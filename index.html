@@ -501,8 +501,8 @@ const NEWS_INTERVAL_MS = 9000;
 const REFRESH_MS       = 5 * 60 * 1000;
 // ── Red Alert (Pikud HaOref) ──
 const ALERT_AREA    = "חדרה מזרח";
-const ALERT_CAT_RED = [1];           // confirmed missile — red alert (cat values TBD)
-const ALERT_CAT_WARN= [2];           // ballistic warning — yellow (cat values TBD)
+const ALERT_CAT_RED = [1, 2, 3, 9, 10]; // missiles, UAV, nonconventional, CBRNE, terror
+const ALERT_CAT_WARN= [4];              // ballistic warning — "be near shelter"
 const ALERT_POLL_MS = 3000;
 const ALERT_URL     = "https://www.oref.org.il/warningMessages/alert/Alerts.json";
 const SIREN_ENABLED = false;
